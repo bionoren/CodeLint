@@ -2,8 +2,8 @@
     BOOL state;
     NSArray *foo, *foo2;
     __weak NSError* error;
-    __weak testWeak;
-    __autoreleasing specialCopy;
+    __weak NSString *testWeak;
+    __autoreleasing int specialCopy;
 }
 
 @property (nonatomic, readonly, strong) __block int lineNum;

@@ -1,9 +1,9 @@
 @interface bad : NSViewController {
-    BOOL state;
-    NSArray *foo2;
-    __weak NSError* error;
-    __weak testWeak;
-    __autoreleasing specialCopy;
+    __strong BOOL state;
+    __strong NSArray *foo2;
+    __weak NSError *error;
+    __weak NSString *testWeak;
+    __autoreleasing int specialCopy;
 }
 
 @property (nonatomic, readonly, strong) __block int lineNum;

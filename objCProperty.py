@@ -17,6 +17,9 @@ class objCProperty:
     def __init__(self, match, property):
         self.property = property
         self.valid = list()
+        self.block = ""
+        self.iboutlet = ""
+        self.pointer = ""
         if self.property:
             self.makeProperty(match)
         else:
@@ -46,6 +49,8 @@ class objCProperty:
                     self.memory = modifier
                 else:
                     self.valid.append("Unsupported property modifier %s" % modifier)
+                    print "Unsupported property modifier %s" % modifier
+                    exit()
                     self.memory = "UNDEFINED"
                     self.atomicity = "UNDEFINED"
 
@@ -83,7 +88,8 @@ class objCProperty:
         self.atomicity = match[0];
         modifiers = (match[1], match[2], match[3])
         for modifier in filter(lambda x:x, modifiers):
-            text = modifier.strip().lower()
+            modifier = modifier.strip()
+            text = modifier.lower()
             if text == "__block":
                 self.block = modifier
             elif text == "iboutlet":
@@ -92,10 +98,12 @@ class objCProperty:
                 self.memory = modifier
             else:
                 self.valid.append("Unsupported property modifier %s" % modifier)
+                print "Unsupported property modifier %s" % modifier
+                exit()
                 self.memory = "UNDEFINED"
                 self.atomicity = "UNDEFINED"
-        self.type = match[3]
-        self.name = match[4]
+        self.type = match[4]
+        self.name = match[5]
         self.correctNameAndType()
 
     @staticmethod
@@ -125,26 +133,30 @@ class objCProperty:
     def findIVars(file):
         data = file.get()
         findIVarSection = re.compile(r'@interface.*?\{([^}]*?)\}', re.DOTALL)
-        findIVars = re.compile(r'(\s*)((?:(__)?\w+)\s+)?((?:(__)?\w+)\s+)?((?:(__)?\w+)\s+)?([^\s;]+)\s+((?:[^\s;]+\s*,?\s*)+);', re.DOTALL)
+        #(IBOutlet|__block|__memoryType) type *? name;
+        findIVars = re.compile(r'(\s*)((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?([^\s;]+)\s+((?:[^\s;]+\s*,?\s*)+);', re.DOTALL)
         section = findIVarSection.search(data)
-        matches = findIVars.finditer(section.group(1))
-        out = list()
-        for match in matches:
-            names = match.group(5).split(",")
-            if len(names) > 1:
-                file.reportError("Multiple ivar declarations on the same line", match)
-            type = match.group(4)
-            if type.endswith("*"):
-                names[0] = "*%s" % names[0].strip()
-                type = type[:-1]
-            ivars = list()
-            for extraivar in filter(lambda x:x in map(lambda x:x.name, file.metaData["properties"]), names):
-                file.reportError("Unnecessary ivar declaration %s" % extraivar, match)
-            for name in filter(lambda x:x not in map(lambda x:x.name, file.metaData["properties"]), names):
-                ivar = objCProperty((match.group(1), match.group(2), match.group(3), type.strip(), name.strip()), False)
-                ivars.append(ivar.__str__())
-                file.metaData["properties"].append(ivar)
-            data = data.replace(match.group(0), "".join(ivars))
+        if section:
+            propertyNames = map(lambda x:x.name, file.metaData["properties"])
+            matches = findIVars.finditer(section.group(1))
+            out = list()
+            for match in matches:
+                names = match.group(6).split(",")
+                if len(names) > 1:
+                    file.reportError("Multiple ivar declarations on the same line", match)
+                type = match.group(5)
+                if type.endswith("*"):
+                    names[0] = "*%s" % names[0].strip()
+                    type = type[:-1]
+                ivars = list()
+                for name in names:
+                    ivar = objCProperty((match.group(1), match.group(2), match.group(3), match.group(4), type.strip(), name.strip()), False)
+                    if ivar.name in propertyNames:
+                        file.reportError("Unnecessary ivar declaration %s" % ivar.name, match)
+                    else:
+                        ivars.append(ivar.__str__())
+                        file.metaData["properties"].append(ivar)
+                data = data.replace(match.group(0), "".join(ivars))
         file.set(data)
 
     @staticmethod
@@ -264,4 +276,4 @@ class objCProperty:
             return "@property (%s, %s) %s%s%s %s%s;" % (self.atomicity, memory, self.block, self.iboutlet, self.type, pointer, self.name)
         else:
             #atomicty is hacked for ivars to contain the leading whitespace
-            return "%s%s %s%s%s &s%s;" % (self.atomicity, self.memory, self.block, self.iboutlet, self.type, self.pointer, self.name)
+            return "%s%s %s%s%s %s%s;" % (self.atomicity, self.memory, self.block, self.iboutlet, self.type, self.pointer, self.name)
