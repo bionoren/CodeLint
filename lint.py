@@ -1,4 +1,5 @@
-from __future__ import with_statement
+#!/usr/bin/python
+
 import re
 import sys
 import getopt
@@ -90,14 +91,15 @@ class Lint:
     def process(self):
         noErrors = True
         for file in self.files:
-            file.set(self.convertLineEndings(file))
-            file.set(self.fixWhiteSpace(file))
+            self.convertLineEndings(file)
+            self.fixWhiteSpace(file)
             implementation = file.fileWithExtension(".m")
-            #if implementation:
-            #    file.set(self.fixObjCPropertiesInHeader(file))
-            #    implementation.set(self.fixObjCPropertiesInImplementation(implementation))
-            #    if not self.pretend:
-            #        implementation.save()
+            if file.type() == "header":
+                self.fixObjCPropertiesInHeader(file)
+            if implementation:
+                self.fixObjCPropertiesInImplementation(implementation, file)
+                if not self.pretend:
+                    implementation.save()
             if not self.pretend:
                 file.save()
             else:
@@ -111,23 +113,11 @@ class Lint:
 
 #fixing Objective C properties
     def fixObjCPropertiesInHeader(self, file):
-        objCProperty.properties = list()
-        file = objCProperty.propertiesInFile(file, self.pretend)
-        if self.pretend and not file:
-            return False
-        return file
+        objCProperty.audit(file)
 
-    def fixObjCPropertiesInImplementation(self, file):
-        file = objCProperty.propertiesInFile(file, self.pretend)
-        if self.pretend and not file:
-            return False
-        file = objCProperty.fixSynthesis(file, self.pretend)
-        if self.pretend and not file:
-            return False
-        file = objCProperty.fixMemoryInImplementation(file, self.pretend)
-        if self.pretend and not file:
-            return False
-        return file
+    def fixObjCPropertiesInImplementation(self, file, header):
+        #objCProperty.audit(file, header)
+        pass
 
 #fixing braces and whitespace
     def convertToOneTrueBraceStyle(self, input):
@@ -157,7 +147,7 @@ class Lint:
             temp = function(notStrings[i])
             if notStrings[i] != temp:
                 match = re.search(re.escape(notStrings[i]), file.get())
-                file.reportError("Invalid brace style in %s" % file, match, True)
+                file.reportError("Invalid brace style", match, True)
             notStrings[i] = temp
 
         ret = notStrings[0]
@@ -167,9 +157,9 @@ class Lint:
         if not self.sameLine:
             temp = self.fixBraceIndent(ret)
             if ret != temp:
-                file.reportError("Invalid brace style in %s" % file)
+                file.reportError("Invalid brace style")
             ret = temp
-        return ret;
+        file.set(ret)
 
     def fixWhiteSpace(self, file):
         ret = file.get()
@@ -180,7 +170,7 @@ class Lint:
         if ret != temp:
             matches = trailingWhiteSpace.finditer(ret)
             for match in matches:
-                file.reportError("Trailing whitespace in %s" % file, match, True)
+                file.reportError("Trailing whitespace", match, True)
             ret = temp
 
         multipleNewLines = re.compile(r'\n{3,}')
@@ -188,13 +178,13 @@ class Lint:
         if ret != temp:
             matches = multipleNewLines.finditer(ret)
             for match in matches:
-                file.reportError("Excessive newlines in %s" % file, match, True)
+                file.reportError("Excessive newlines", match, True)
             ret = temp
 
         trailingWhiteSpace = re.compile(r'\n+$')
         temp = trailingWhiteSpace.sub(r'', ret)
         if ret != temp:
-            file.reportError("Trailing newlines in %s" % file)
+            file.reportError("Trailing newlines")
             ret = temp
 
         if file.type() in ("objc", "header"):
@@ -203,7 +193,9 @@ class Lint:
             if ret != temp:
                 matches = implementationEndWhiteSpace.finditer(ret)
                 for match in matches:
-                    file.reportError("Insufficient whitespace after @end tag in %s" % file, match)
+                    file.reportError("Insufficient whitespace after @end tag", match)
                 ret = temp
 
-        return ret
+        file.set(ret)
+
+Lint.run()

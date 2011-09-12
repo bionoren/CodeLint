@@ -1,6 +1,6 @@
-class objCProperty:
-    properties = list()
+import re
 
+class objCProperty:
     findIVarExp = r'(?:(?:__block|IBOutlet)\s+)*%s\s+%s\s*;'
     atomicity = "atomic"
     memory = "__strong"
@@ -16,14 +16,17 @@ class objCProperty:
 
     def __init__(self, match, property):
         self.property = property
+        self.valid = list()
         if self.property:
             self.makeProperty(match)
         else:
             self.makeIVar(match)
+        if len(self.valid) == 0:
+            self.valid = True
 
     def correctNameAndType(self):
         if self.type.endswith("*"):
-            self.valid = False
+            self.valid.append("Invalid pointer '*' association")
             self.pointer = "*"
             self.type = self.type[:-1];
         if self.name.startswith("*"):
@@ -42,19 +45,26 @@ class objCProperty:
                 elif modifier in ("strong", "weak", "autoreleasing", "unsafe_unretained", "copy"):
                     self.memory = modifier
                 else:
-                    print "Unsupported property modifier %s" % modifier
+                    self.valid.append("Unsupported property modifier %s" % modifier)
                     self.memory = "UNDEFINED"
                     self.atomicity = "UNDEFINED"
-        if match.group(3): #IBOutlets
-            if self.atomicity is not "nonatomic" or self.memory is not "retain" or self.block is not "":
-                self.valid = False
+
+        mod1 = None
+        mod2 = None
+        if match.group(2):
+            mod1 = match.group(2).strip()
+        if match.group(3):
+            mod2 = match.group(2).strip()
+        if mod1 == "IBOutlet" or mod2 == "IBOutlet":
+            self.iboutlet = "IBOutlet "
+        if mod1 == "__block" or mod2 == "__block":
+            self.block = "__block "
+
+        if self.iboutlet:
+            if self.atomicity != "nonatomic" or self.memory not in ("weak", "strong"):
+                self.valid.append("IBOutlet not declared (nonatomic, weak|strong)")
                 self.atomicity = "nonatomic"
-                self.memory = "retain"
-                self.block = "";
-            self.iboutlet = match.group(2)
-        #save whether or not this is declared __block
-        if self.iboutlet is "" and match.group(2):
-            self.block = match.group(2)
+                self.memory = "weak"
 
         self.type = match.group(4).strip()
         self.name = match.group(5).strip()
@@ -62,12 +72,12 @@ class objCProperty:
         #make sure objects are declared copy when they could be mutable but aren't the mutable version
         if self.type in ("NSArray", "NSSet", "NSDictionary", "NSString"):
             if self.memory is not "copy":
-                self.valid = False
+                self.valid.append("Potentially mutable type %s not declared copy" % self.type)
                 self.memory = "copy"
         #make sure all pointers are declared strong, unless explictly postfixed with "Unsafe" or "Weak"
-        elif self.memory not in ("__strong", "readonly") and self.pointer and not (self.name.endswith("Unsafe") or self.name.endswith("Weak")):
+        elif self.memory not in ("strong", "readonly") and self.pointer and not (self.name.endswith("Unsafe") or self.name.endswith("Weak")):
+            self.valid.append("Pointer declared %s instead of strong" % self.memory)
             self.memory = "strong"
-            self.valid = False
 
     def makeIVar(self, match):
         self.atomicity = match[0];
@@ -81,7 +91,7 @@ class objCProperty:
             elif text in ("__strong", "__weak", "__autoreleasing", "__unsafe_unretained"):
                 self.memory = modifier
             else:
-                print "Unsupported ivar modifier %s" % modifier
+                self.valid.append("Unsupported property modifier %s" % modifier)
                 self.memory = "UNDEFINED"
                 self.atomicity = "UNDEFINED"
         self.type = match[3]
@@ -89,56 +99,56 @@ class objCProperty:
         self.correctNameAndType()
 
     @staticmethod
-    def propertiesInFile(file, pretend):
-        findProperty = re.compile(r'@property\s+(?:\(((?:[^\,)],?)+)\)\s+)?((?:__block|IBOutlet)\s+)?((?:__block|IBOutlet)\s+)?(\S+)\s+(\S+?)\s*;', re.IGNORECASE)
-        matches = findProperty.finditer(file)
+    def audit(file, header=None):
+        if "properties" not in file.metaData:
+            file.metaData["properties"] = list()
+        objCProperty.findProperties(file)
+        objCProperty.findIVars(file)
+
+    @staticmethod
+    def findProperties(file):
+        data = file.get()
+        findProperty = re.compile(r'@property\s+(?:\(((?:[^\,)],?)+)\)\s+)?(?:(__block|IBOutlet)\s+)?(?:(__block|IBOutlet)\s+)?(\S+)\s+(\S+?)\s*;', re.IGNORECASE)
+        matches = findProperty.finditer(data)
         properties = list()
-        valid = True
         for match in matches:
             #print match.groups()
             property = objCProperty(match, True)
-            valid = valid and property.valid
-            if pretend and not valid:
-                return False
-            file = file.replace(match.group(0), property.__str__())
-            objCProperty.properties.append(property)
-        (file, valid) = objCProperty.findIVars(file, pretend)
-        if pretend and not valid:
-            return False
-        #print "------------"
-        #for item in objCProperty.properties:
-        #    print item
-        return file
+            if property.valid is not True:
+                for error in property.valid:
+                    file.reportError(error, match)
+            data = data.replace(match.group(0), property.__str__())
+            file.metaData["properties"].append(property)
+        file.set(data)
 
     @staticmethod
-    def findIVars(file, pretend):
+    def findIVars(file):
+        data = file.get()
         findIVarSection = re.compile(r'@interface.*?\{([^}]*?)\}', re.DOTALL)
         findIVars = re.compile(r'(\s*)((?:(__)?\w+)\s+)?((?:(__)?\w+)\s+)?((?:(__)?\w+)\s+)?([^\s;]+)\s+((?:[^\s;]+\s*,?\s*)+);', re.DOTALL)
-        section = findIVarSection.search(file)
+        section = findIVarSection.search(data)
         matches = findIVars.finditer(section.group(1))
         out = list()
-        valid = True
         for match in matches:
             names = match.group(5).split(",")
             if len(names) > 1:
-                valid = False
+                file.reportError("Multiple ivar declarations on the same line", match)
             type = match.group(4)
             if type.endswith("*"):
                 names[0] = "*%s" % names[0].strip()
                 type = type[:-1]
-                valid = False
-            if pretend and not valid:
-                return False
             ivars = list()
-            for name in filter(lambda x:x not in map(lambda x:x.name, objCProperty.properties), names):
+            for extraivar in filter(lambda x:x in map(lambda x:x.name, file.metaData["properties"]), names):
+                file.reportError("Unnecessary ivar declaration %s" % extraivar, match)
+            for name in filter(lambda x:x not in map(lambda x:x.name, file.metaData["properties"]), names):
                 ivar = objCProperty((match.group(1), match.group(2), match.group(3), type.strip(), name.strip()), False)
                 ivars.append(ivar.__str__())
-                objCProperty.properties.append(ivar)
-            file = file.replace(match.group(0), "".join(ivars))
-        return (file, valid)
+                file.metaData["properties"].append(ivar)
+            data = data.replace(match.group(0), "".join(ivars))
+        file.set(data)
 
     @staticmethod
-    def fixSynthesis(file, pretend):
+    def fixSynthesis(file):
         findSynthesis = re.compile(r'(\s*)@synthesize\s*((?:[^\s;]+\s*,?\s*)+);', re.DOTALL | re.IGNORECASE)
         matches = findSynthesis.finditer(file)
         for match in matches:
@@ -152,7 +162,7 @@ class objCProperty:
         return file
 
     @staticmethod
-    def fixMemoryInImplementation(file, pretend):
+    def fixMemoryInImplementation(file):
         findMethod = r'%s\s*\(\s*%s\s*\)\s*%s[^\{]*\{(.*?)\n\}'
 
         findPropertyAssignment = r'[^\.\w]%s\s*='
@@ -248,7 +258,10 @@ class objCProperty:
                 memory = "readonly, %s" % self.memory
             else:
                 memory = self.memory
-            return "@property (%s, %s) %s%s%s %s%s;" % (self.atomicity, memory, self.block, self.iboutlet, self.type, self.pointer, self.name)
+            pointer = ""
+            if self.pointer:
+                pointer = "*"
+            return "@property (%s, %s) %s%s%s %s%s;" % (self.atomicity, memory, self.block, self.iboutlet, self.type, pointer, self.name)
         else:
             #atomicty is hacked for ivars to contain the leading whitespace
             return "%s%s %s%s%s &s%s;" % (self.atomicity, self.memory, self.block, self.iboutlet, self.type, self.pointer, self.name)

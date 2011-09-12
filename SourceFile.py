@@ -4,7 +4,7 @@ class SourceFile:
     validFileExtensions = (".m", ".h")
 
     errors = None
-    classes = None
+    metaData = None
     name = None
     ext = None
     contents = None
@@ -19,7 +19,7 @@ class SourceFile:
                 rootDir = os.getcwd()
             self.root = rootDir
             self.errors = list()
-            self.classes = list()
+            self.metaData = {}
 
     @staticmethod
     def filterLineEndings(fileName):
@@ -46,9 +46,9 @@ class SourceFile:
     def getErrors(self):
         for errorTuple in self.errors:
             if errorTuple[2]:
-                yield "Line %s: %s (%s)" % (errorTuple[1], errorTuple[0], errorTuple[2])
+                yield "Line %s: %s in %s (%s)" % (errorTuple[1], errorTuple[0], self, errorTuple[2])
             else:
-                yield "Line %s: %s" % (errorTuple[1], errorTuple[0])
+                yield "Line %s: %s in %s" % (errorTuple[1], errorTuple[0], self)
 
     def getRawErrors(self):
         for errorTuple in errors:
@@ -72,11 +72,12 @@ class SourceFile:
         self.contents = contents
 
     def save(self):
-        current = os.getcwd()
-        os.chdir(self.root)
-        with open("%s%s" % (self.name, self.ext), "w") as file:
-            file.write(self.contents)
-        os.chdir(current)
+        if self.contents:
+            current = os.getcwd()
+            os.chdir(self.root)
+            with open("%s%s" % (self.name, self.ext), "w") as file:
+                file.write(self.contents)
+            os.chdir(current)
 
     def replace(self, find, replace):
         self.contents = self.contents.replace(find, replace)
