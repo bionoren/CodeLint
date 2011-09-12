@@ -10,8 +10,6 @@
 
 @synthesize specialCopy;
 @synthesize specialAssign, lineNum;
-@synthesize temp;
-
 @synthesize foo, text;
 
 -(id)init {

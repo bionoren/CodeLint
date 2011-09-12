@@ -115,6 +115,8 @@ class objCProperty:
                 file.metaData["properties"] = list()
         objCProperty.findProperties(file)
         objCProperty.findIVars(file)
+        if file.type() != "header":
+            objCProperty.fixSynthesis(file)
 
     @staticmethod
     def findProperties(file):
@@ -164,17 +166,29 @@ class objCProperty:
 
     @staticmethod
     def fixSynthesis(file):
+        data = file.get()
         findSynthesis = re.compile(r'(\s*)@synthesize\s*((?:[^\s;]+\s*,?\s*)+);', re.DOTALL | re.IGNORECASE)
-        matches = findSynthesis.finditer(file)
+        matches = findSynthesis.finditer(data)
+        properties = file.metaData["properties"]
+        synthesizedProperties = list()
+        marker = "@implementation\n"
         for match in matches:
             names = match.group(2).strip().split(",")
-            if len(names) > 1 and pretend:
-                return False
+            if len(names) > 1:
+                file.reportError("Synthesizing multiple properties on the same line", match)
             out = list()
             for name in names:
                 out.append("%s@synthesize %s;" % (match.group(1), name.strip()))
-            file = file.replace(match.group(0), "".join(out))
-        return file
+                synthesizedProperties.append(name.strip())
+            marker = "".join(out)
+            data = data.replace(match.group(0), marker)
+        out = ""
+        for property in filter(lambda x:x.property and x.name not in synthesizedProperties, properties):
+            file.reportError("Unsynthesized property %s" % property.name)
+            out += "@synthesize %s;\n" % property.name
+        if out != "":
+            data = data.replace(marker, marker+"\n"+out)
+        file.set(data)
 
     @staticmethod
     def fixMemoryInImplementation(file):

@@ -8,10 +8,14 @@
 @implementation bad
 
 @synthesize specialCopy;
-@synthesize specialAssign, lineNum;
+@synthesize specialAssign;
+@synthesize lineNum;
+@synthesize foo;
+@synthesize text;
 @synthesize temp;
-
-@synthesize foo, text;
+@synthesize crapColor;
+@synthesize crapColorUnsafe;
+@synthesize special;
 
 -(id)init {
     self = [super init];
