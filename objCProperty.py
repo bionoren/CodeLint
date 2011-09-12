@@ -109,7 +109,10 @@ class objCProperty:
     @staticmethod
     def audit(file, header=None):
         if "properties" not in file.metaData:
-            file.metaData["properties"] = list()
+            if header:
+                file.metaData["properties"] = header.metaData["properties"]
+            else:
+                file.metaData["properties"] = list()
         objCProperty.findProperties(file)
         objCProperty.findIVars(file)
 

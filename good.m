@@ -1,9 +1,8 @@
 @interface bad () {
-    NSMutableString *temp;
-    int layer;
+    __strong int layer;
 }
-@property (nonatomic, readonly, __weak) NSMutableString *special;
-@property (copy) id specialCopy;
+@property (nonatomic, readonly, strong) NSMutableString *special;
+@property (atomic, copy) id specialCopy;
 @end
 
 @implementation bad

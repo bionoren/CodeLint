@@ -2,7 +2,7 @@
     NSMutableString *temp;
     int layer;
 }
-@property (nonatomic, readonly, __weak) NSMutableString *special;
+@property (nonatomic, readonly, weak) NSMutableString *special;
 @property (copy) id specialCopy;
 @end
 @implementation bad
@@ -48,7 +48,7 @@
     //  NSLog(@"here");
     //} else
 
-        
+
 
     //{
     //  NSLog(@"there");

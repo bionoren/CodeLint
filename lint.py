@@ -93,13 +93,14 @@ class Lint:
         for file in self.files:
             self.convertLineEndings(file)
             self.fixWhiteSpace(file)
-            implementation = file.fileWithExtension(".m")
             if file.type() == "header":
                 self.fixObjCPropertiesInHeader(file)
-            if implementation:
-                self.fixObjCPropertiesInImplementation(implementation, file)
-                if not self.pretend:
-                    implementation.save()
+            if file.type() != "objc":
+                implementation = file.fileWithExtension(".m")
+                if implementation:
+                    self.fixObjCPropertiesInImplementation(implementation, file)
+                    if not self.pretend:
+                        implementation.save()
             if not self.pretend:
                 file.save()
             else:
@@ -116,7 +117,7 @@ class Lint:
         objCProperty.audit(file)
 
     def fixObjCPropertiesInImplementation(self, file, header):
-        #objCProperty.audit(file, header)
+        objCProperty.audit(file, header)
         pass
 
 #fixing braces and whitespace
