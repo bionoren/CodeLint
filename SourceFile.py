@@ -1,7 +1,9 @@
 import os
+import re
 
 class SourceFile:
     validFileExtensions = (".m", ".h")
+    ignoreSearch = re.compile(r'\$ignore\s*?$', re.MULTILINE)
 
     errors = None
     metaData = None
@@ -28,17 +30,18 @@ class SourceFile:
                 return ext
         return False
 
+    #Returns False if the error was suppressed
     def reportError(self, error, match, suppressText=True):
-        if match:
+        ignore = self.ignoreSearch.search(self.get(), match.start())
+        if ignore is None:
             lineno = self.get().count("\n", 0, match.start())+1
             if not suppressText:
                 badString = match.group(0)
             else:
                 badString = None
-        else:
-            lineno = -1
-            badString = None
-        self.errors.append((error, lineno, badString))
+            self.errors.append((error, lineno, badString))
+            return True
+        return False
 
     def hasErrors(self):
         return len(self.errors)

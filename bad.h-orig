@@ -8,7 +8,7 @@
 
 @property (nonatomic, readonly, strong) __block int lineNum;
 @property (copy) NSMutableString* temp;
-@property (strong) __block NSArray *foo;
+@property (strong) __block NSArray *foo; //$ignore
 @property (atomic, autoreleasing) IBOutlet UITextField *text;
 @property (unsafe_unretained) UIColor *crapColor;
 @property (unsafe_unretained) UIColor *crapColorUnsafe;

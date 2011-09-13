@@ -11,8 +11,14 @@ class ReSubLogger:
         self.suppressText = suppressText
 
     def subAndLog(self, match):
-        self.file.reportError(self.message, match, self.suppressText)
-        return self.replacement
+        if self.file.reportError(self.message, match, self.suppressText):
+            if hasattr(self.replacement, '__call__'):
+                ret = self.replacement(match)
+            else:
+                ret = self.replacement
+            return match.expand(ret)
+        else:
+            return match.group(0)
 
     def subAndLogFunc(self, match):
-        return self.subAndLog(match)(match)
+        return self.subAndLog(match)

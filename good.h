@@ -11,5 +11,5 @@
 @property (atomic, copy) __block NSArray *foo;
 @property (nonatomic, strong) IBOutlet UITextField *text;
 @property (atomic, strong) UIColor *crapColor;
-@property (atomic, unsafe_unretained) UIColor *crapColorUnsafe;
+@property (unsafe_unretained) UIColor *crapColorUnsafe;
 @end

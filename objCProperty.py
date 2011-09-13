@@ -129,8 +129,8 @@ class objCProperty:
             property = objCProperty(match, True)
             if property.valid is not True:
                 for error in property.valid:
-                    file.reportError(error, match, False)
-            data = data.replace(match.group(0), property.__str__())
+                    if file.reportError(error, match, False):
+                        data = data.replace(match.group(0), property.__str__())
             file.metaData["properties"].append(property)
         file.set(data)
 
@@ -156,8 +156,8 @@ class objCProperty:
                 ivars = list()
                 for name in names:
                     ivar = objCProperty((match.group(1), match.group(2), match.group(3), match.group(4), type.strip(), name.strip()), False)
-                    if ivar.name in propertyNames:
-                        file.reportError("Unnecessary ivar declaration %s" % ivar.name, match, False)
+                    if ivar.name in propertyNames and file.reportError("Unnecessary ivar declaration %s" % ivar.name, match, False):
+                        pass
                     else:
                         ivars.append(ivar.__str__())
                         file.metaData["properties"].append(ivar)
@@ -185,8 +185,8 @@ class objCProperty:
         out = ""
         match = re.search(marker, data)
         for property in filter(lambda x:x.property and x.name not in synthesizedProperties, properties):
-            file.reportError("Unsynthesized property %s" % property.name, match)
-            out += "@synthesize %s;\n" % property.name
+            if file.reportError("Unsynthesized property %s" % property.name, match):
+                out += "@synthesize %s;\n" % property.name
         if out != "":
             data = data.replace(marker, marker+"\n"+out, 1)
         file.set(data)
@@ -273,10 +273,7 @@ class objCProperty:
                 for property in objCProperty.properties:
                     if property.iboutlet or property.name in assignedInViewDidLoad:
                         #convert [self set%s:nil] calls to self.%s = nil
-                        #add any missing self.%s = nil calls
-                        #convert autoreleases to releases
                         pass
-        #in the old system we don't audit ivars, because Drew doesn't care
 
         return file
 

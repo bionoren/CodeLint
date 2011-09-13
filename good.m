@@ -2,7 +2,7 @@
     __strong int layer;
 }
 @property (nonatomic, readonly, strong) NSMutableString *special;
-@property (atomic, copy) id specialCopy;
+@property (copy) id specialCopy;
 @end
 
 @implementation bad

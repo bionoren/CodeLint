@@ -140,8 +140,8 @@ class Lint:
             temp = function(notStrings[i])
             if notStrings[i] != temp:
                 match = re.search(re.escape(notStrings[i]), file.get())
-                file.reportError("Invalid brace style", match)
-            notStrings[i] = temp
+                if file.reportError("Invalid brace style", match):
+                    notStrings[i] = temp
 
         ret = notStrings[0]
         for i in range(1, len(notStrings)):
@@ -157,20 +157,12 @@ class Lint:
 
         #It's important that we check this first
         trailingWhiteSpace = re.compile(r'( |\t)+\n')
-        temp = trailingWhiteSpace.sub(r'\n', ret)
-        if ret != temp:
-            matches = trailingWhiteSpace.finditer(ret)
-            for match in matches:
-                file.reportError("Trailing whitespace", match)
-            ret = temp
+        func = ReSubLogger(file, r'\n', "Trailing whitespace")
+        ret = trailingWhiteSpace.sub(func.subAndLog, ret)
 
         multipleNewLines = re.compile(r'\n{3,}')
-        temp = multipleNewLines.sub(r'\n\n', ret)
-        if ret != temp:
-            matches = multipleNewLines.finditer(ret)
-            for match in matches:
-                file.reportError("Excessive newlines", match)
-            ret = temp
+        func = ReSubLogger(file, r'\n\n', "Excessive newlines")
+        ret = multipleNewLines.sub(func.subAndLog, ret)
 
         trailingWhiteSpace = re.compile(r'\n+$')
         func = ReSubLogger(file, r'', "Trailing newlines")
@@ -178,12 +170,8 @@ class Lint:
 
         if file.type() in ("objc", "header"):
             implementationEndWhiteSpace = re.compile(r'@end\n?(\S)')
-            temp = implementationEndWhiteSpace.sub(r'@end\n\n\1', ret)
-            if ret != temp:
-                matches = implementationEndWhiteSpace.finditer(ret)
-                for match in matches:
-                    file.reportError("Insufficient whitespace after @end tag", match, False)
-                ret = temp
+            func = ReSubLogger(file, r'@end\n\n\1', "Insufficient whitespace after @end tag")
+            ret = implementationEndWhiteSpace.sub(func.subAndLog, ret)
 
         file.set(ret)
 
