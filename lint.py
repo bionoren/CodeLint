@@ -6,7 +6,8 @@ import getopt
 import commands
 import os
 from SourceFile import SourceFile
-from objCProperty import objCProperty
+from objCAuditer import objCAuditor
+from ReSubLogger import ReSubLogger
 
 class Lint:
     toOneTrueBraceStyle = None
@@ -94,31 +95,25 @@ class Lint:
             self.convertLineEndings(file)
             self.fixWhiteSpace(file)
             if file.type() == "header":
-                self.fixObjCPropertiesInHeader(file)
-            if file.type() != "objc":
-                implementation = file.fileWithExtension(".m")
-                if implementation:
-                    self.fixObjCPropertiesInImplementation(implementation, file)
-                    if not self.pretend:
-                        implementation.save()
+                if objCAuditor.implementationExists(file):
+                    auditer = objCAuditor(file)
+                    files = auditer.audit()
+                    for f in files:
+                        if not self.pretend:
+                            f.save()
+                        else:
+                            for error in f.getErrors():
+                                print error
+                        noErrors = noErrors and not f.hasErrors()
             if not self.pretend:
                 file.save()
             else:
                 for error in file.getErrors():
                     print error
-            if noErrors and (file.hasErrors() or (implementation and implementation.hasErrors())):
-                noErrors = False
+            noErrors = noErrors and not file.hasErrors()
         if self.pretend:
             return noErrors
         return True
-
-#fixing Objective C properties
-    def fixObjCPropertiesInHeader(self, file):
-        objCProperty.audit(file)
-
-    def fixObjCPropertiesInImplementation(self, file, header):
-        objCProperty.audit(file, header)
-        pass
 
 #fixing braces and whitespace
     def convertToOneTrueBraceStyle(self, input):
@@ -130,9 +125,6 @@ class Lint:
         ret = self.fromOneTrueBraceStyle.sub("\n{", input);
         #patch else blocks together
         return self.fromOneTrueBraceStyle_elsePatch.sub(r'\1}\1else', ret);
-
-    def fixBraceIndent(self, input):
-        return self.fixBraceIndentation.sub(r'\1\3\n\1{', input)
 
     def convertLineEndings(self, file):
         if self.sameLine:
@@ -148,7 +140,7 @@ class Lint:
             temp = function(notStrings[i])
             if notStrings[i] != temp:
                 match = re.search(re.escape(notStrings[i]), file.get())
-                file.reportError("Invalid brace style", match, True)
+                file.reportError("Invalid brace style", match)
             notStrings[i] = temp
 
         ret = notStrings[0]
@@ -156,10 +148,8 @@ class Lint:
             if len(notStrings[i]) > 0:
                 ret += strings.next().group(0) + notStrings[i]
         if not self.sameLine:
-            temp = self.fixBraceIndent(ret)
-            if ret != temp:
-                file.reportError("Invalid brace style")
-            ret = temp
+            func = ReSubLogger(file, r'\1\3\n\1{', "Invalid brace style")
+            ret = self.fixBraceIndentation.sub(func.subAndLog, ret)
         file.set(ret)
 
     def fixWhiteSpace(self, file):
@@ -171,7 +161,7 @@ class Lint:
         if ret != temp:
             matches = trailingWhiteSpace.finditer(ret)
             for match in matches:
-                file.reportError("Trailing whitespace", match, True)
+                file.reportError("Trailing whitespace", match)
             ret = temp
 
         multipleNewLines = re.compile(r'\n{3,}')
@@ -179,14 +169,12 @@ class Lint:
         if ret != temp:
             matches = multipleNewLines.finditer(ret)
             for match in matches:
-                file.reportError("Excessive newlines", match, True)
+                file.reportError("Excessive newlines", match)
             ret = temp
 
         trailingWhiteSpace = re.compile(r'\n+$')
-        temp = trailingWhiteSpace.sub(r'', ret)
-        if ret != temp:
-            file.reportError("Trailing newlines")
-            ret = temp
+        func = ReSubLogger(file, r'', "Trailing newlines")
+        ret = trailingWhiteSpace.sub(func.subAndLog, ret)
 
         if file.type() in ("objc", "header"):
             implementationEndWhiteSpace = re.compile(r'@end\n?(\S)')
@@ -194,7 +182,7 @@ class Lint:
             if ret != temp:
                 matches = implementationEndWhiteSpace.finditer(ret)
                 for match in matches:
-                    file.reportError("Insufficient whitespace after @end tag", match)
+                    file.reportError("Insufficient whitespace after @end tag", match, False)
                 ret = temp
 
         file.set(ret)

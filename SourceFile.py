@@ -28,7 +28,7 @@ class SourceFile:
                 return ext
         return False
 
-    def reportError(self, error, match=None, suppressText=False):
+    def reportError(self, error, match, suppressText=True):
         if match:
             lineno = self.get().count("\n", 0, match.start())+1
             if not suppressText:
@@ -46,9 +46,9 @@ class SourceFile:
     def getErrors(self):
         for errorTuple in self.errors:
             if errorTuple[2]:
-                yield "Line %s: %s in %s (%s)" % (errorTuple[1], errorTuple[0], self, errorTuple[2])
+                yield "%s:%s: %s (%s)" % (self, errorTuple[1], errorTuple[0], errorTuple[2])
             else:
-                yield "Line %s: %s in %s" % (errorTuple[1], errorTuple[0], self)
+                yield "%s:%s: %s" % (self, errorTuple[1], errorTuple[0])
 
     def getRawErrors(self):
         for errorTuple in errors:

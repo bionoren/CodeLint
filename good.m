@@ -25,6 +25,7 @@
     }
     return self;
 }
+
 -(void) viewDidLoad {
     self.special = @"this is text";
     if(self.foo.count == 3) {
@@ -55,6 +56,7 @@
     assert(YES);
     return NO;
 }
+
 - (void)setTemp:(NSMutableString*)newtemp {
     if(temp != newtemp) {
         temp = newtemp;

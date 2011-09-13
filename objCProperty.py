@@ -76,7 +76,7 @@ class objCProperty:
         self.correctNameAndType()
         #make sure objects are declared copy when they could be mutable but aren't the mutable version
         if self.type in ("NSArray", "NSSet", "NSDictionary", "NSString"):
-            if self.memory is not "copy":
+            if self.memory != "copy":
                 self.valid.append("Potentially mutable type %s not declared copy" % self.type)
                 self.memory = "copy"
         #make sure all pointers are declared strong, unless explictly postfixed with "Unsafe" or "Weak"
@@ -129,7 +129,7 @@ class objCProperty:
             property = objCProperty(match, True)
             if property.valid is not True:
                 for error in property.valid:
-                    file.reportError(error, match)
+                    file.reportError(error, match, False)
             data = data.replace(match.group(0), property.__str__())
             file.metaData["properties"].append(property)
         file.set(data)
@@ -148,7 +148,7 @@ class objCProperty:
             for match in matches:
                 names = match.group(6).split(",")
                 if len(names) > 1:
-                    file.reportError("Multiple ivar declarations on the same line", match)
+                    file.reportError("Multiple ivar declarations on the same line", match, False)
                 type = match.group(5)
                 if type.endswith("*"):
                     names[0] = "*%s" % names[0].strip()
@@ -157,7 +157,7 @@ class objCProperty:
                 for name in names:
                     ivar = objCProperty((match.group(1), match.group(2), match.group(3), match.group(4), type.strip(), name.strip()), False)
                     if ivar.name in propertyNames:
-                        file.reportError("Unnecessary ivar declaration %s" % ivar.name, match)
+                        file.reportError("Unnecessary ivar declaration %s" % ivar.name, match, False)
                     else:
                         ivars.append(ivar.__str__())
                         file.metaData["properties"].append(ivar)
@@ -175,7 +175,7 @@ class objCProperty:
         for match in matches:
             names = match.group(2).strip().split(",")
             if len(names) > 1:
-                file.reportError("Synthesizing multiple properties on the same line", match)
+                file.reportError("Synthesizing multiple properties on the same line", match, False)
             out = list()
             for name in names:
                 out.append("%s@synthesize %s;" % (match.group(1), name.strip()))
@@ -183,20 +183,19 @@ class objCProperty:
             marker = "".join(out)
             data = data.replace(match.group(0), marker)
         out = ""
+        match = re.search(marker, data)
         for property in filter(lambda x:x.property and x.name not in synthesizedProperties, properties):
-            file.reportError("Unsynthesized property %s" % property.name)
+            file.reportError("Unsynthesized property %s" % property.name, match)
             out += "@synthesize %s;\n" % property.name
         if out != "":
-            data = data.replace(marker, marker+"\n"+out)
+            data = data.replace(marker, marker+"\n"+out, 1)
         file.set(data)
 
     @staticmethod
     def fixMemoryInImplementation(file):
-        findMethod = r'%s\s*\(\s*%s\s*\)\s*%s[^\{]*\{(.*?)\n\}'
-
         findPropertyAssignment = r'[^\.\w]%s\s*='
         findValidPropertyAssignment = r'self\.%s\s*=\s*'
-        findCustomSetter = findMethod % (r'-', r'void', r'set%s:')
+        findCustomSetter = objCAuditor.findMethod % (r'-', r'void', r'set%s:')
 
         #fix property assignment without self.
         for property in objCProperty.properties:
