@@ -18,8 +18,7 @@
 @synthesize special;
 
 -(id)init {
-    self = [super init];
-    if(self) {
+    if((self = [super init])) {
         foo = [[NSArray alloc] init];
         lineNum = 23;
     }

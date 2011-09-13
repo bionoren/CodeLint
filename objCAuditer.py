@@ -24,6 +24,7 @@ class objCAuditor:
         implementation = self.file.fileWithExtension(".m")
         objCProperty.audit(implementation, self.file)
         self.fixWhiteSpaceInImplementation(implementation)
+        self.fixSelfAssignment(implementation)
         return (implementation,)
 
     @staticmethod
@@ -34,5 +35,16 @@ class objCAuditor:
         data = file.get()
         exp = re.compile(objCAuditor.findMethodDeclaration % (r'}\n(?: |\t)*(?:\+|-)', r'\w+', r''))
         func = ReSubLogger(file, objCAuditor.methodWhiteSpaceSubHelper, "Insufficient newlines between method declarations.")
+        data = exp.sub(func.subAndLogFunc, data)
+        file.set(data)
+
+    @staticmethod
+    def selfAssignmentSubHelper(match):
+        return 'if((self = [%s]))' % match.group(1)
+
+    def fixSelfAssignment(self, file):
+        data = file.get()
+        exp = re.compile(r'self\s*=\s*\[\s*([^\]]+)\]\s*;\s*if\(\s*self\s*\)')
+        func = ReSubLogger(file, objCAuditor.selfAssignmentSubHelper, "Improper initialization of self")
         data = exp.sub(func.subAndLogFunc, data)
         file.set(data)
