@@ -7,6 +7,7 @@ class objCAuditor:
     findMethod = r'%s\s*\(\s*%s\s*\)\s*%s[^\{]*\{(.*?)\n\}'
     #Usage: (+|-), returnType, methodName
     findMethodDeclaration = r'%s\s*\(\s*%s\s*\)\s*%s[^\{]*\{'
+    noPropertyAudit = re.compile(r'^\s*//\s*!lint-ignoreProperties')
 
     file = None
 
@@ -22,7 +23,8 @@ class objCAuditor:
     def audit(self):
         objCProperty.audit(self.file)
         implementation = self.file.fileWithExtension(".m")
-        objCProperty.audit(implementation, self.file)
+        if objCAuditor.noPropertyAudit.search(implementation.get()) is None:
+            objCProperty.audit(implementation, self.file)
         self.fixWhiteSpaceInImplementation(implementation)
         self.fixSelfAssignment(implementation)
         return (implementation,)

@@ -176,4 +176,5 @@ class Lint:
 
         file.set(ret)
 
-Lint.run()
+if __name__ == "__main__":
+    Lint.run()

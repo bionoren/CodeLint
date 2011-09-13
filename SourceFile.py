@@ -11,6 +11,7 @@ class SourceFile:
     ext = None
     contents = None
     root = None
+    modified = False
 
     def __init__(self, fileName, rootDir=None):
         self.ext = SourceFile.filterLineEndings(fileName)
@@ -21,6 +22,7 @@ class SourceFile:
             self.root = rootDir
             self.errors = list()
             self.metaData = {}
+            self.modified = False
 
     @staticmethod
     def filterLineEndings(fileName):
@@ -83,9 +85,10 @@ class SourceFile:
 
     def set(self, contents):
         self.contents = contents
+        self.modified = True
 
     def save(self):
-        if self.contents:
+        if self.contents and self.modified:
             current = os.getcwd()
             os.chdir(self.root)
             with open("%s%s" % (self.name, self.ext), "w") as file:
