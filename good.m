@@ -8,7 +8,6 @@
 @implementation bad
 
 @synthesize specialCopy;
-@synthesize specialAssign;
 @synthesize lineNum;
 @synthesize foo;
 @synthesize text;

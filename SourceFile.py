@@ -3,7 +3,7 @@ import re
 
 class SourceFile:
     validFileExtensions = (".m", ".h")
-    ignoreSearch = re.compile(r'\$ignore\s*?$', re.MULTILINE)
+    ignoreMatch = re.compile(r'[^\n]*\!lint-ignore', re.MULTILINE)
 
     errors = None
     metaData = None
@@ -15,8 +15,7 @@ class SourceFile:
     def __init__(self, fileName, rootDir=None):
         self.ext = SourceFile.filterLineEndings(fileName)
         if self.ext:
-            path = fileName.split("/")
-            self.name = path[len(path)-1][:-len(self.ext)]
+            self.name = fileName[:-len(self.ext)]
             if not rootDir:
                 rootDir = os.getcwd()
             self.root = rootDir
@@ -31,15 +30,16 @@ class SourceFile:
         return False
 
     #Returns False if the error was suppressed
-    def reportError(self, error, match, suppressText=True):
-        ignore = self.ignoreSearch.search(self.get(), match.start())
+    #level starts at 0 for uninteresting stuff. It escalates from there
+    def reportError(self, error, match, level=0, suppressText=True):
+        ignore = SourceFile.ignoreMatch.match(self.get(), match.start())
         if ignore is None:
             lineno = self.get().count("\n", 0, match.start())+1
             if not suppressText:
                 badString = match.group(0)
             else:
                 badString = None
-            self.errors.append((error, lineno, badString))
+            self.errors.append((error, lineno, badString, level))
             return True
         return False
 
@@ -49,9 +49,19 @@ class SourceFile:
     def getErrors(self):
         for errorTuple in self.errors:
             if errorTuple[2]:
-                yield "%s:%s: %s (%s)" % (self, errorTuple[1], errorTuple[0], errorTuple[2])
+                yield self.colorForLevel(errorTuple[3]) % ("%s:%s: %s (%s)" % (self, errorTuple[1], errorTuple[0], errorTuple[2]))
             else:
-                yield "%s:%s: %s" % (self, errorTuple[1], errorTuple[0])
+                yield self.colorForLevel(errorTuple[3]) % ("%s:%s: %s" % (self, errorTuple[1], errorTuple[0]))
+
+    def colorForLevel(self, level):
+        if level == 0:
+            return '%s'
+        elif level == 1:
+            return '\033[1;33m%s\033[1;m'
+        elif level == 2:
+            return '\033[1;31m%s\033[1;m'
+        else:
+            return '\033[1;41m%s\033[1;m'
 
     def getRawErrors(self):
         for errorTuple in errors:

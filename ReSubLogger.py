@@ -3,15 +3,17 @@ class ReSubLogger:
     replacement = None
     message = None
     suppressText = False
+    level = 0
 
-    def __init__(self, file, replacement, message, suppressText=True):
+    def __init__(self, file, replacement, message, level=0, suppressText=True):
         self.file = file
         self.replacement = replacement
         self.message = message
         self.suppressText = suppressText
+        self.level = level
 
     def subAndLog(self, match):
-        if self.file.reportError(self.message, match, self.suppressText):
+        if self.file.reportError(self.message, match, self.level, self.suppressText):
             if hasattr(self.replacement, '__call__'):
                 ret = self.replacement(match)
             else:

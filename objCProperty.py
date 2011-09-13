@@ -21,6 +21,7 @@ class objCProperty:
         self.iboutlet = ""
         self.pointer = ""
         if self.property:
+            self.memory = "strong"
             self.makeProperty(match)
         else:
             self.makeIVar(match)
@@ -45,12 +46,12 @@ class objCProperty:
                     self.atomicity = modifier
                 elif modifier == "readonly":
                     self.readonly = True
-                elif modifier in ("strong", "weak", "autoreleasing", "unsafe_unretained", "copy"):
+                elif modifier in ("strong", "weak", "autoreleasing", "unsafe_unretained", "copy", "retain"):
                     self.memory = modifier
                 else:
                     self.valid.append("Unsupported property modifier %s" % modifier)
                     print "Unsupported property modifier %s" % modifier
-                    exit()
+                    raise NotImplementedError
                     self.memory = "UNDEFINED"
                     self.atomicity = "UNDEFINED"
 
@@ -99,7 +100,7 @@ class objCProperty:
             else:
                 self.valid.append("Unsupported property modifier %s" % modifier)
                 print "Unsupported property modifier %s" % modifier
-                exit()
+                raise NotImplementedError
                 self.memory = "UNDEFINED"
                 self.atomicity = "UNDEFINED"
         self.type = match[4]
@@ -129,7 +130,7 @@ class objCProperty:
             property = objCProperty(match, True)
             if property.valid is not True:
                 for error in property.valid:
-                    if file.reportError(error, match, False):
+                    if file.reportError(error, match, 1, False):
                         data = data.replace(match.group(0), property.__str__())
             file.metaData["properties"].append(property)
         file.set(data)
@@ -148,7 +149,7 @@ class objCProperty:
             for match in matches:
                 names = match.group(6).split(",")
                 if len(names) > 1:
-                    file.reportError("Multiple ivar declarations on the same line", match, False)
+                    file.reportError("Multiple ivar declarations on the same line", match, 1, False)
                 type = match.group(5)
                 if type.endswith("*"):
                     names[0] = "*%s" % names[0].strip()
@@ -156,7 +157,7 @@ class objCProperty:
                 ivars = list()
                 for name in names:
                     ivar = objCProperty((match.group(1), match.group(2), match.group(3), match.group(4), type.strip(), name.strip()), False)
-                    if ivar.name in propertyNames and file.reportError("Unnecessary ivar declaration %s" % ivar.name, match, False):
+                    if ivar.name in propertyNames and file.reportError("Unnecessary ivar declaration %s" % ivar.name, match, 1, False):
                         pass
                     else:
                         ivars.append(ivar.__str__())
@@ -167,28 +168,29 @@ class objCProperty:
     @staticmethod
     def fixSynthesis(file):
         data = file.get()
-        findSynthesis = re.compile(r'(\s*)@synthesize\s*((?:[^\s;]+\s*,?\s*)+);', re.DOTALL | re.IGNORECASE)
+        findSynthesis = re.compile(r'(\s*)@(?:synthesize|dynamic)\s*((?:[^\s;]+\s*,?\s*)+)', re.DOTALL | re.IGNORECASE)
         matches = findSynthesis.finditer(data)
         properties = file.metaData["properties"]
         synthesizedProperties = list()
-        marker = "@implementation\n"
+        marker = "@implementation.*?\n"
         for match in matches:
             names = match.group(2).strip().split(",")
             if len(names) > 1:
-                file.reportError("Synthesizing multiple properties on the same line", match, False)
+                file.reportError("Synthesizing multiple properties on the same line", match, 1, False)
             out = list()
             for name in names:
                 out.append("%s@synthesize %s;" % (match.group(1), name.strip()))
-                synthesizedProperties.append(name.strip())
+                synthesizedProperties.append(name.strip().split(" ")[0]) #dealing with @synthesize property = _ivar
             marker = "".join(out)
-            data = data.replace(match.group(0), marker)
+            if len(names) > 1:
+                data = data.replace(match.group(0), marker)
         out = ""
         match = re.search(marker, data)
         for property in filter(lambda x:x.property and x.name not in synthesizedProperties, properties):
-            if file.reportError("Unsynthesized property %s" % property.name, match):
+            if file.reportError("Unsynthesized property %s" % property.name, match, 1):
                 out += "@synthesize %s;\n" % property.name
         if out != "":
-            data = data.replace(marker, marker+"\n"+out, 1)
+            data = re.sub(marker, r'%s\n%s' % (match.group(0), out), data)
         file.set(data)
 
     @staticmethod

@@ -92,6 +92,7 @@ class Lint:
     def process(self):
         noErrors = True
         for file in self.files:
+            print "processing %s\n========================" % file
             self.convertLineEndings(file)
             self.fixWhiteSpace(file)
             if file.type() == "header":

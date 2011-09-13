@@ -9,7 +9,7 @@
 
 
 @synthesize specialCopy;
-@synthesize specialAssign, lineNum;
+@synthesize lineNum;
 @synthesize foo, text;
 -(id)init {
     self = [super init];
