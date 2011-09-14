@@ -46,7 +46,7 @@ class objCProperty:
                     self.atomicity = modifier
                 elif modifier == "readonly":
                     self.readonly = True
-                elif modifier in ("strong", "weak", "autoreleasing", "unsafe_unretained", "copy", "retain"):
+                elif modifier in ("strong", "weak", "autoreleasing", "unsafe_unretained", "copy", "retain", "assign"):
                     self.memory = modifier
                 else:
                     self.valid.append("Unsupported property modifier %s" % modifier)
