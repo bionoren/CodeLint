@@ -80,10 +80,6 @@ class objCProperty:
             if self.memory != "copy":
                 self.valid.append("Potentially mutable type %s not declared copy" % self.type)
                 self.memory = "copy"
-        #make sure all pointers are declared strong, unless explictly postfixed with "Unsafe" or "Weak"
-        elif self.memory not in ("strong", "readonly") and self.pointer and not (self.name.endswith("Unsafe") or self.name.endswith("Weak")):
-            self.valid.append("Pointer declared %s instead of strong" % self.memory)
-            self.memory = "strong"
 
     def makeIVar(self, match):
         self.atomicity = match[0];
@@ -138,11 +134,11 @@ class objCProperty:
     @staticmethod
     def findIVars(file):
         data = file.get()
-        findIVarSection = re.compile(r'@interface.*?\{([^}]*?)\}', re.DOTALL)
-        #(IBOutlet|__block|__memoryType) type *? name;
-        findIVars = re.compile(r'(\s*)((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?([^\s;]+)\s+((?:[^\s;]+\s*,?\s*)+);', re.DOTALL)
+        findIVarSection = re.compile(r'@interface[^@]*?\{([^}]*?)\}', re.DOTALL)
         section = findIVarSection.search(data)
         if section:
+            #(IBOutlet|__block|__memoryType) type *? name;
+            findIVars = re.compile(r'(\s*)((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?([^\s;]+)\s+((?:[^\s;]+\s*,?\s*)+);', re.DOTALL)
             propertyNames = map(lambda x:x.name, file.metaData["properties"])
             matches = findIVars.finditer(section.group(1))
             out = list()
