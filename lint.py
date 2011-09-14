@@ -64,7 +64,7 @@ class Lint:
             linter = Lint(args[1:])
             ret = linter.process()
             if ret is False:
-                print "Lint analyses failed!"
+                print "Lint analysis failed!"
         except getopt.GetoptError:
             Lint.usage()
 
@@ -74,7 +74,7 @@ class Lint:
         linter = Lint(["lint", "-s", "-u", "-p"])
         ret = linter.process()
         if ret is False:
-            print "Lint analyses failed!"
+            print "Lint analysis failed!"
         return ret
 
     @staticmethod
