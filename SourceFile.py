@@ -12,8 +12,9 @@ class SourceFile:
     contents = None
     root = None
     modified = False
+    pretend = False
 
-    def __init__(self, fileName, rootDir=None):
+    def __init__(self, fileName, rootDir, pretend):
         self.ext = SourceFile.filterLineEndings(fileName)
         if self.ext:
             self.name = fileName[:-len(self.ext)]
@@ -23,6 +24,7 @@ class SourceFile:
             self.errors = list()
             self.metaData = {}
             self.modified = False
+            self.pretend = pretend
 
     @staticmethod
     def filterLineEndings(fileName):
@@ -44,6 +46,12 @@ class SourceFile:
             self.errors.append((error, lineno, badString, level))
             return True
         return False
+
+    def reoffsetError(self, match, amount):
+        if amount != 0:
+            error = self.errors[-1]
+            lineno = self.get().count("\n", 0, match.start()+amount)+1
+            self.errors[-1] = (error[0], lineno, error[2], error[3])
 
     def hasErrors(self):
         return len(self.errors)
@@ -67,7 +75,7 @@ class SourceFile:
 
     def fileWithExtension(self, extension):
         if os.path.exists("%s%s" % (self.name, extension)):
-            return SourceFile("%s%s" % (self.name, extension))
+            return SourceFile("%s%s" % (self.name, extension), self.root, self.pretend)
         return None
 
     def get(self):
@@ -80,8 +88,9 @@ class SourceFile:
         return self.contents
 
     def set(self, contents):
-        self.contents = contents
-        self.modified = True
+        if not self.pretend:
+            self.contents = contents
+            self.modified = True
 
     def save(self):
         if self.contents and self.modified:
