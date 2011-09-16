@@ -76,7 +76,7 @@ class objCProperty:
         self.name = match.group(5).strip()
         self.correctNameAndType()
         #make sure objects are declared copy when they could be mutable but aren't the mutable version
-        if self.type in ("NSArray", "NSSet", "NSDictionary", "NSString"):
+        if not self.readonly and self.type in ("NSArray", "NSSet", "NSDictionary", "NSString"):
             if self.memory != "copy":
                 self.valid.append("Potentially mutable type %s not declared copy" % self.type)
                 self.memory = "copy"
