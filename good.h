@@ -7,9 +7,9 @@
 }
 
 @property (nonatomic, readonly, strong) __block int lineNum;
-@property (atomic, strong) NSMutableString *temp;
+@property (atomic, copy) NSMutableString *temp;
 @property (strong) __block NSArray *foo; //!lint-ignore
-@property (nonatomic, strong) IBOutlet UITextField *text;
-@property (atomic, strong) UIColor *crapColor;
+@property (nonatomic, weak) IBOutlet UITextField *text;
+@property (unsafe_unretained) UIColor *crapColor;
 @property (unsafe_unretained) UIColor *crapColorUnsafe;
 @end

@@ -19,7 +19,7 @@
     }
     return self;
 }
--(void) viewDidLoad
+-(void) viewDidLoad;
 {
     self.special = @"this is text";
     if(self.foo.count == 3)
