@@ -167,8 +167,7 @@ class objCProperty:
         findSynthesis = re.compile(r'(\s*)@(?:synthesize|dynamic)\s*((?:[^\s;]+\s*,?\s*)+)', re.DOTALL | re.IGNORECASE)
         matches = findSynthesis.finditer(data)
         properties = file.metaData["properties"]
-        synthesizedProperties = list()
-        marker = "@implementation.*?\n"
+
         for match in matches:
             names = match.group(2).strip().split(",")
             if len(names) > 1:
@@ -176,17 +175,8 @@ class objCProperty:
             out = list()
             for name in names:
                 out.append("%s@synthesize %s;" % (match.group(1), name.strip()))
-                synthesizedProperties.append(name.strip().split(" ")[0]) #dealing with @synthesize property = _ivar
-            marker = "".join(out)
             if len(names) > 1:
-                data = data.replace(match.group(0), marker)
-        out = ""
-        match = re.search(marker, data)
-        for property in filter(lambda x:x.property and x.name not in synthesizedProperties, properties):
-            if file.reportError("Unsynthesized property %s" % property.name, match, 1):
-                out += "@synthesize %s;\n" % property.name
-        if out != "":
-            data = re.sub(marker, r'%s\n%s' % (match.group(0), out), data)
+                data = data.replace(match.group(0), "".join(out))
         file.set(data)
 
     @staticmethod
