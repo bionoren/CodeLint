@@ -161,7 +161,7 @@ class Lint:
         ret = file.get()
 
         #It's important that we check this first
-        trailingWhiteSpace = re.compile(r'( |\t)+\n')
+        trailingWhiteSpace = re.compile(r'(?<=\S)(?: |\t)+\n')
         func = ReSubLogger(file, r'\n', "Trailing whitespace")
         ret = trailingWhiteSpace.sub(func.subAndLog, ret)
 
