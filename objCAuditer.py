@@ -25,6 +25,7 @@ class objCAuditor:
         implementation = self.file.fileWithExtension(".m")
         if objCAuditor.noPropertyAudit.search(implementation.get()) is None:
             objCProperty.audit(implementation, self.file)
+        self.fixSemicolonAfterMethod(implementation)
         self.fixWhiteSpaceInImplementation(implementation)
         self.fixSelfAssignment(implementation)
         return (implementation,)
@@ -37,6 +38,17 @@ class objCAuditor:
         data = file.get()
         exp = re.compile(objCAuditor.findMethodDeclaration % (r'(}|;)\n(?: |\t)*(?:\+|-)', r'\w+', r''))
         func = ReSubLogger(file, objCAuditor.methodWhiteSpaceSubHelper, "Insufficient newlines between method declarations.")
+        data = exp.sub(func.subAndLogFunc, data)
+        file.set(data)
+
+    @staticmethod
+    def semicolonAfterMethodHelper(match):
+        return "%s%s" % (match.group(1), match.group(2))
+
+    def fixSemicolonAfterMethod(self, file):
+        data = file.get()
+        exp = re.compile(r'((?:\+|-)\s*\(\s*\w+\s*\)\s*[^\{;]*);(\s*\{)')
+        func = ReSubLogger(file, objCAuditor.semicolonAfterMethodHelper, "Why... do you have a semicolon here?", 1)
         data = exp.sub(func.subAndLogFunc, data)
         file.set(data)
 

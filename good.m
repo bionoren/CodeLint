@@ -1,7 +1,7 @@
 @interface bad () {
     __strong int layer;
 }
-@property (nonatomic, readonly, strong) NSMutableString *special;
+@property (nonatomic, readonly, weak) NSMutableString *special;
 @property (copy) id specialCopy;
 @end
 
@@ -11,10 +11,6 @@
 @synthesize lineNum;
 @synthesize foo;
 @synthesize text;
-@synthesize temp;
-@synthesize crapColor;
-@synthesize crapColorUnsafe;
-@synthesize special;
 
 -(id)init {
     if((self = [super init])) {

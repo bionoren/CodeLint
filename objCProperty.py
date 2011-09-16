@@ -164,7 +164,7 @@ class objCProperty:
     @staticmethod
     def fixSynthesis(file):
         data = file.get()
-        findSynthesis = re.compile(r'(\s*)@(?:synthesize|dynamic)\s*((?:[^\s;]+\s*,?\s*)+)', re.DOTALL | re.IGNORECASE)
+        findSynthesis = re.compile(r'(\s*)@(?:synthesize|dynamic)\s*((?:[^\s;]+\s*,?\s*)+);', re.DOTALL | re.IGNORECASE)
         matches = findSynthesis.finditer(data)
         properties = file.metaData["properties"]
 
