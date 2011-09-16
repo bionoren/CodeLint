@@ -12,8 +12,9 @@ class SourceFile:
     contents = None
     root = None
     modified = False
+    pretend = False
 
-    def __init__(self, fileName, rootDir=None):
+    def __init__(self, fileName, rootDir, pretend):
         self.ext = SourceFile.filterLineEndings(fileName)
         if self.ext:
             self.name = fileName[:-len(self.ext)]
@@ -23,6 +24,7 @@ class SourceFile:
             self.errors = list()
             self.metaData = {}
             self.modified = False
+            self.pretend = pretend
 
     @staticmethod
     def filterLineEndings(fileName):
@@ -45,25 +47,27 @@ class SourceFile:
             return True
         return False
 
+    def reoffsetError(self, match, amount):
+        if amount != 0:
+            error = self.errors[-1]
+            lineno = self.get().count("\n", 0, match.start()+amount)+1
+            self.errors[-1] = (error[0], lineno, error[2], error[3])
+
     def hasErrors(self):
         return len(self.errors)
 
     def getErrors(self):
         for errorTuple in self.errors:
             if errorTuple[2]:
-                yield self.colorForLevel(errorTuple[3]) % ("%s:%s: %s (%s)" % (self, errorTuple[1], errorTuple[0], errorTuple[2]))
+                yield "%s:%s: %s: %s (%s)" % (self, errorTuple[1], errorTuple[0], self.errorTypeForLevel(errorTuple[3]), errorTuple[2])
             else:
-                yield self.colorForLevel(errorTuple[3]) % ("%s:%s: %s" % (self, errorTuple[1], errorTuple[0]))
+                yield "%s:%s: %s: %s" % (self, errorTuple[1], self.errorTypeForLevel(errorTuple[3]), errorTuple[0])
 
-    def colorForLevel(self, level):
-        if level == 0:
-            return '%s'
-        elif level == 1:
-            return '\033[1;33m%s\033[1;m'
-        elif level == 2:
-            return '\033[1;31m%s\033[1;m'
+    def errorTypeForLevel(self, level):
+        if level <= 0:
+            return 'warning'
         else:
-            return '\033[1;41m%s\033[1;m'
+            return 'error'
 
     def getRawErrors(self):
         for errorTuple in errors:
@@ -71,7 +75,7 @@ class SourceFile:
 
     def fileWithExtension(self, extension):
         if os.path.exists("%s%s" % (self.name, extension)):
-            return SourceFile("%s%s" % (self.name, extension))
+            return SourceFile("%s%s" % (self.name, extension), self.root, self.pretend)
         return None
 
     def get(self):
@@ -84,8 +88,9 @@ class SourceFile:
         return self.contents
 
     def set(self, contents):
-        self.contents = contents
-        self.modified = True
+        if not self.pretend:
+            self.contents = contents
+            self.modified = True
 
     def save(self):
         if self.contents and self.modified:
