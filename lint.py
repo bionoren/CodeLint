@@ -44,7 +44,7 @@ class Lint:
 
         if "--all" in flags:
             for fileName in commands.getoutput("find %s" % rootDir).strip().split("\n"):
-                file = SourceFile(fileName, rootDir)
+                file = SourceFile(fileName, rootDir, self.pretend)
                 if file.ext:
                     self.files.append(file)
         else:
@@ -52,7 +52,7 @@ class Lint:
             match = re.search(r'branch\s+(.+?)\s*$', status, re.IGNORECASE | re.MULTILINE)
             changedFiles = commands.getoutput("git diff --name-only remotes/origin/%s ." % match.group(1))
             for fileName in changedFiles.strip().split("\n"):
-                file = SourceFile(fileName, rootDir)
+                file = SourceFile(fileName, rootDir, self.pretend)
                 if file.ext:
                     print file
                     self.files.append(file)
@@ -100,15 +100,13 @@ class Lint:
                     auditer = objCAuditor(file)
                     files = auditer.audit()
                     for f in files:
-                        if not self.pretend:
-                            f.save()
-                        else:
+                        f.save()
+                        if self.pretend:
                             for error in f.getErrors():
                                 print error
                         noErrors = noErrors and not f.hasErrors()
-            if not self.pretend:
-                file.save()
-            else:
+            file.save()
+            if self.pretend:
                 for error in file.getErrors():
                     print error
             noErrors = noErrors and not file.hasErrors()
@@ -117,15 +115,25 @@ class Lint:
         return True
 
 #fixing braces and whitespace
-    def convertToOneTrueBraceStyle(self, input):
-        ret = self.toOneTrueBraceStyle.sub(" {", input)
+    def convertToOneTrueBraceStyle(self, input, file):
+        func = ReSubLogger(file, r' {', "Invalid brace style")
+        match = re.search(re.escape(input), file.get())
+        func.setOffset(match.start())
+        ret = self.toOneTrueBraceStyle.sub(func.subAndLog, input)
         #patch else blocks together
-        return self.toOneTrueBraceStyle_elsePatch.sub("} else {", ret);
+        func = ReSubLogger(file, r'} else {', "Invalid brace style")
+        func.setOffset(match.start())
+        return self.toOneTrueBraceStyle_elsePatch.sub(func.subAndLog, ret);
 
-    def convertFromOneTrueBraceStyle(self, input):
-        ret = self.fromOneTrueBraceStyle.sub("\n{", input);
+    def convertFromOneTrueBraceStyle(self, input, file):
+        func = ReSubLogger(file, r'\n{', "Invalid brace style")
+        match = re.search(re.escape(input), file.get())
+        func.setOffset(match.start())
+        ret = self.fromOneTrueBraceStyle.sub(func.subAndLog, input);
         #patch else blocks together
-        return self.fromOneTrueBraceStyle_elsePatch.sub(r'\1}\1else', ret);
+        func = ReSubLogger(file, r'\1}\1else', "Invalid brace style")
+        func.setOffset(match.start())
+        return self.fromOneTrueBraceStyle_elsePatch.sub(func.subAndLog, ret);
 
     def convertLineEndings(self, file):
         if self.sameLine:
@@ -138,11 +146,7 @@ class Lint:
         strings = findQuotedStringOrLineComment.finditer(file.get())
 
         for i in range(0, len(notStrings)):
-            temp = function(notStrings[i])
-            if notStrings[i] != temp:
-                match = re.search(re.escape(notStrings[i]), file.get())
-                if file.reportError("Invalid brace style", match):
-                    notStrings[i] = temp
+            notStrings[i] = function(notStrings[i], file)
 
         ret = notStrings[0]
         for i in range(1, len(notStrings)):
