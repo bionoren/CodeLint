@@ -51,19 +51,15 @@ class SourceFile:
     def getErrors(self):
         for errorTuple in self.errors:
             if errorTuple[2]:
-                yield self.colorForLevel(errorTuple[3]) % ("%s:%s: %s (%s)" % (self, errorTuple[1], errorTuple[0], errorTuple[2]))
+                yield "%s:%s: %s: %s (%s)" % (self, errorTuple[1], errorTuple[0], self.errorTypeForLevel(errorTuple[3]), errorTuple[2])
             else:
-                yield self.colorForLevel(errorTuple[3]) % ("%s:%s: %s" % (self, errorTuple[1], errorTuple[0]))
+                yield "%s:%s: %s: %s" % (self, errorTuple[1], self.errorTypeForLevel(errorTuple[3]), errorTuple[0])
 
-    def colorForLevel(self, level):
-        if level == 0:
-            return '%s'
-        elif level == 1:
-            return '\033[1;33m%s\033[1;m'
-        elif level == 2:
-            return '\033[1;31m%s\033[1;m'
+    def errorTypeForLevel(self, level):
+        if level <= 0:
+            return 'warning'
         else:
-            return '\033[1;41m%s\033[1;m'
+            return 'error'
 
     def getRawErrors(self):
         for errorTuple in errors:
