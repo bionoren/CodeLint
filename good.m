@@ -22,7 +22,7 @@
 
 -(void) viewDidLoad {
     self.special = @"this is text";
-    if(self.foo.count == 3) {
+    if(self.foo.count == 3) {//testing 123
         NSLog(@"This is a %@", foo);
     } else {
         self.foo = [NSArray arrayWithObject:@"bar"];

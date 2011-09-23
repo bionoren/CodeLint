@@ -151,7 +151,10 @@ class Lint:
         ret = notStrings[0]
         for i in range(1, len(notStrings)):
             if len(notStrings[i]) > 0:
-                ret += strings.next().group(0) + notStrings[i]
+                if notStrings[i].startswith(" {"): #avoid problems with single line comments like this
+                    ret += "{" + strings.next().group(0) + notStrings[i][2:]
+                else:
+                    ret += strings.next().group(0) + notStrings[i]
         if not self.sameLine:
             func = ReSubLogger(file, r'\1\3\n\1{', "Invalid brace style")
             ret = self.fixBraceIndentation.sub(func.subAndLog, ret)
