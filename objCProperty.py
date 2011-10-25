@@ -140,7 +140,7 @@ class objCProperty:
         section = findIVarSection.search(data)
         if section:
             #(IBOutlet|__block|__memoryType) type *? name;
-            findIVars = re.compile(r'(\s*)((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?([^\s;]+)\s+((?:[^\s;]+\s*,?\s*)+);', re.DOTALL)
+            findIVars = re.compile(r'^(\s*)((?:__\w+|IBOutlet)\s+)?((?:__\w+|IBOutlet)\s+)?((?:__\w+|IBOutlet)\s+)?([^\s;/]+)\s+((?:[^\s;]+\s*,?\s*)+);', re.DOTALL | re.MULTILINE)
             propertyNames = map(lambda x:x.name, file.metaData["properties"])
             matches = findIVars.finditer(section.group(1))
             out = list()
@@ -148,6 +148,7 @@ class objCProperty:
                 names = match.group(6).split(",")
                 if len(names) > 1:
                     file.reportError("Multiple ivar declarations on the same line", match, 1, False)
+                    file.reoffsetError(match, section.start())
                 type = match.group(5)
                 if type.endswith("*"):
                     names[0] = "*%s" % names[0].strip()
