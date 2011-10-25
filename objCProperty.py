@@ -48,6 +48,8 @@ class objCProperty:
                     self.readonly = True
                 elif modifier in ("strong", "weak", "autoreleasing", "unsafe_unretained", "copy", "retain", "assign"):
                     self.memory = modifier
+                elif modifier.startswith("getter=") or modifier.startswith("setter="):
+                    pass
                 else:
                     self.valid.append("Unsupported property modifier %s" % modifier)
                     print "Unsupported property modifier %s" % modifier
