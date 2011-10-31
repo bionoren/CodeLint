@@ -84,6 +84,7 @@ class objCProperty:
     def makeIVar(self, match):
         self.atomicity = match[0];
         modifiers = (match[1], match[2], match[3])
+        self.memory = "";
         for modifier in filter(lambda x:x, modifiers):
             modifier = modifier.strip()
             text = modifier.lower()
@@ -277,4 +278,10 @@ class objCProperty:
             return "@property (%s, %s) %s%s%s %s%s;" % (self.atomicity, memory, self.block, self.iboutlet, self.type, pointer, self.name)
         else:
             #atomicty is hacked for ivars to contain the leading whitespace
-            return "%s%s %s%s%s %s%s;" % (self.atomicity, self.memory, self.block, self.iboutlet, self.type, self.pointer, self.name)
+            ret = self.atomicity
+            if self.memory:
+                ret += "%s " % self.memory
+            else:
+                ret += "%s" % self.memory
+            ret += "%s%s%s %s%s;" % (self.block, self.iboutlet, self.type, self.pointer, self.name)
+            return ret
