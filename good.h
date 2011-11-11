@@ -1,6 +1,6 @@
 @interface bad : NSViewController {
-    __strong BOOL state;
-    __strong NSArray *foo2;
+    BOOL state;
+    NSArray *foo2;
     __weak NSError *error;
     __weak NSString *testWeak;
     __autoreleasing int specialCopy;
