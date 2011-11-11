@@ -5,6 +5,7 @@ import sys
 import getopt
 import commands
 import os
+from Statistics import Statistics
 from SourceFile import SourceFile
 from objCAuditer import objCAuditor
 from ReSubLogger import ReSubLogger
@@ -91,8 +92,10 @@ class Lint:
     #Returns true if everything analyzed cleanly or if everything was updated to analyze cleanly
     def process(self):
         noErrors = True
+        stats = Statistics()
         for file in self.files:
             print "processing %s\n========================" % file
+            stats.analyze(file)
             self.convertLineEndings(file)
             self.fixWhiteSpace(file)
             if file.type() == "header":
@@ -110,6 +113,7 @@ class Lint:
                 for error in file.getErrors():
                     print error
             noErrors = noErrors and not file.hasErrors()
+        print stats
         if self.pretend:
             return noErrors
         return True
