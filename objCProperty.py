@@ -138,22 +138,25 @@ class objCProperty:
         findIVarSection = re.compile(r'@interface[^@]*?\{([^}]*?)\}', re.DOTALL)
         section = findIVarSection.search(data)
         if section:
-            #(IBOutlet|__block|__memoryType) type *? name;
-            findIVars = re.compile(r'(\s*)((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?((?:(?:__|IBO)\w+)\s+)?([^\s;]+)\s+((?:[^\s;]+\s*,?\s*)+);', re.DOTALL)
+            #(IBOutlet|__block|__memoryType) type name[, name...];
+            findIVars = re.compile(r'(\s*)((?:(?:(?:__|IBO)\w+)\s+)*)([^\s;]+)\s+((?:[^\s;]+\s*(?:,\s*[^\s;]+\s*)*));', re.DOTALL)
             propertyNames = map(lambda x:x.name, file.metaData["properties"])
             matches = findIVars.finditer(section.group(1))
             out = list()
             for match in matches:
-                names = match.group(6).split(",")
+                names = match.group(4).split(",")
                 if len(names) > 1:
                     file.reportError("Multiple ivar declarations on the same line", match, 1, False)
-                type = match.group(5)
+                type = match.group(3)
                 if type.endswith("*"):
                     names[0] = "*%s" % names[0].strip()
                     type = type[:-1]
                 ivars = list()
+                parts = match.group(2).split(" ")
+                while len(parts) < 3:
+                    parts.append("")
                 for name in names:
-                    ivar = objCProperty((match.group(1), match.group(2), match.group(3), match.group(4), type.strip(), name.strip()), False)
+                    ivar = objCProperty((match.group(1), parts[0], parts[1], parts[2], type.strip(), name.strip()), False)
                     if ivar.name in propertyNames and file.reportError("Unnecessary ivar declaration %s" % ivar.name, match, 1, False):
                         pass
                     else:
