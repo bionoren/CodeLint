@@ -1,3 +1,4 @@
+#!/bin/python
 import re
 from SourceFile import SourceFile
 
