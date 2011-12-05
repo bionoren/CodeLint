@@ -6,7 +6,7 @@ class objCAuditor:
     #Usage: (+|-), returnType, methodName
     findMethod = r'%s\s*\(\s*%s\s*\)\s*%s[^\{]*\{(.*?)\n\}'
     #Usage: (+|-), returnType, methodName
-    findMethodDeclaration = r'%s\s*\(\s*%s\s*\)\s*%s[^\{]*\{'
+    findMethodDeclaration = r'%s\s*\(\s*%s\s*\)\s*%s[^\{@]*\{'
     noPropertyAudit = re.compile(r'^\s*//\s*!lint-ignoreProperties')
 
     file = None

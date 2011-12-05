@@ -38,7 +38,7 @@ class SourceFile:
     def reportError(self, error, match, level=0, suppressText=True):
         ignore = SourceFile.ignoreMatch.match(self.get(), match.start())
         if ignore is None:
-            lineno = self.get().count("\n", 0, match.start())+1
+            lineno = self.get().count("\n", 0, match.start())+2
             if not suppressText:
                 badString = match.group(0)
             else:
@@ -50,7 +50,7 @@ class SourceFile:
     def reoffsetError(self, match, amount):
         if amount != 0:
             error = self.errors[-1]
-            lineno = self.get().count("\n", 0, match.start()+amount)+1
+            lineno = self.get().count("\n", 0, match.start()+amount)+2
             self.errors[-1] = (error[0], lineno, error[2], error[3])
 
     def hasErrors(self):
