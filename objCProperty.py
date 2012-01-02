@@ -69,8 +69,8 @@ class objCProperty:
             self.block = "__block "
 
         if self.iboutlet:
-            if self.atomicity != "nonatomic" or self.memory not in ("weak", "strong"):
-                self.valid.append("IBOutlet not declared (nonatomic, weak|strong)")
+            if self.atomicity != "nonatomic" or self.memory != "weak":
+                self.valid.append("IBOutlet not declared (nonatomic, weak)")
                 self.atomicity = "nonatomic"
                 self.memory = "weak"
 
