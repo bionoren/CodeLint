@@ -32,11 +32,11 @@ class objCAuditor:
 
     @staticmethod
     def methodWhiteSpaceSubHelper(match):
-        return "%s\n\n%s" % (match.group(1), match.group(0)[1:])
+        return "%s\n\n%s" % (match.group(1), match.group(2))
 
     def fixWhiteSpaceInImplementation(self, file):
         data = file.get()
-        exp = re.compile(objCAuditor.findMethodDeclaration % (r'(}|;)\n(?: |\t)*(?:\+|-)', r'\w+', r''))
+        exp = re.compile(r'^(\s*[^\+-]?.*?(?:}|;))\n((?: |\t)*(?:\+|-)\s*\([^;]+$)', re.MULTILINE)
         func = ReSubLogger(file, objCAuditor.methodWhiteSpaceSubHelper, "Insufficient newlines between method declarations.")
         data = exp.sub(func.subAndLogFunc, data)
         file.set(data)
