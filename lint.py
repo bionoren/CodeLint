@@ -22,7 +22,7 @@ class Lint:
     originalDir = None
 
     def __init__(self, flags):
-        if "-h" in flags:
+        if "-h" in flags or "--help" in flags:
             self.usage()
             exit(0)
 
@@ -60,7 +60,7 @@ class Lint:
     @staticmethod
     def run():
         try:
-            opts, args = getopt.getopt(sys.argv, "hsndpu:", ["all"])
+            opts, args = getopt.getopt(sys.argv, "hsndpu:", ["all", "help"])
             linter = Lint(args[1:])
             ret = linter.process()
             if ret is False:
@@ -81,6 +81,7 @@ class Lint:
     def usage():
         print "Usage: work.py lint (-s | -n) [-au] [-d DIR]"
         print "-h     Display this usage message"
+        print "--help Display this usage message"
         print "-p     Analyze for compliance, don't actually write anything"
         print "-s     Converts to braces on the same line\n\t(default)"
         print "-n     Converts to braces on a new line"
