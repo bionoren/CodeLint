@@ -27,7 +27,7 @@ class Lint:
             exit(0)
 
         self.toOneTrueBraceStyle = re.compile(r'\s*?\n\s*\{', re.DOTALL)
-        self.toOneTrueBraceStyle_elsePatch = re.compile(r'\}\s*else\s*?\n\s*\{', re.DOTALL)
+        self.toOneTrueBraceStyle_elsePatch = re.compile(r'\}\s*else\s*?\s*\{', re.DOTALL)
         self.fromOneTrueBraceStyle = re.compile(r'\s*\{( |\t)*')
         self.fromOneTrueBraceStyle_elsePatch = re.compile(r'(\s*)\}\s*else')
         self.fixBraceIndentation = re.compile(r'^(( |\t)*)(.*)\n\{', re.MULTILINE)

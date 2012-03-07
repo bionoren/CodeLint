@@ -55,6 +55,8 @@
     if(temp != newtemp) {
         temp = newtemp;
         lineNum++;
+    } else {
+        lineNum--;
     }
 }
 

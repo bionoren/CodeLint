@@ -63,6 +63,10 @@
         temp = newtemp;
         lineNum++;
     }
+    else
+    {
+        lineNum--;
+    }
 }
 
 -(void) dealloc {
