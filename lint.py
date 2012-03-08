@@ -2,7 +2,7 @@
 
 import re
 import sys
-import getopt
+import argparse
 import commands
 import os
 from SourceFile import SourceFile
@@ -22,28 +22,32 @@ class Lint:
     originalDir = None
 
     def __init__(self, flags):
-        if "-h" in flags or "--help" in flags:
-            self.usage()
-            exit(0)
-
         self.toOneTrueBraceStyle = re.compile(r'\s*?\n\s*\{', re.DOTALL)
         self.toOneTrueBraceStyle_elsePatch = re.compile(r'\}\s*else\s*?\n\s*\{', re.DOTALL)
         self.fromOneTrueBraceStyle = re.compile(r'\s*\{( |\t)*')
         self.fromOneTrueBraceStyle_elsePatch = re.compile(r'(\s*)\}\s*else')
         self.fixBraceIndentation = re.compile(r'^(( |\t)*)(.*)\n\{', re.MULTILINE)
 
-        self.sameLine = "-n" not in flags
-        self.pretend = "-p" in flags
+        self.sameLine = "n" not in flags
+        self.pretend = "p" in flags
 
-        if "-d" in flags:
+        if "d" in flags:
             rootDir = flags[flags.index("-d")+1]
         else:
             match = re.search(r':\s+(.+?):\s+', commands.getoutput("$(git rev-parse --show-toplevel)"))
             rootDir = match.group(1)
         print "Processing files in %s" % os.getcwd()
 
-        if "--all" in flags:
+        if "all" in flags:
             for fileName in commands.getoutput("find %s" % rootDir).strip().split("\n"):
+                cont = True
+                if "ignore" in flags:
+                    for ignore in flags.ignore:
+                        if fileName.replace(rootDir+"/", "", 1).startswith(ignore[0]):
+                            cont = False
+                            break
+                if not cont:
+                    continue
                 file = SourceFile(fileName, rootDir, self.pretend)
                 if file.ext:
                     self.files.append(file)
@@ -52,6 +56,7 @@ class Lint:
             match = re.search(r'branch\s+(.+?)\s*$', status, re.IGNORECASE | re.MULTILINE)
             changedFiles = commands.getoutput("git diff --name-only remotes/origin/%s ." % match.group(1))
             for fileName in changedFiles.strip().split("\n"):
+                print "name = %s" % fileName
                 file = SourceFile(fileName, rootDir, self.pretend)
                 if file.ext:
                     print file
@@ -59,14 +64,18 @@ class Lint:
 
     @staticmethod
     def run():
-        try:
-            opts, args = getopt.getopt(sys.argv, "hsndpu:", ["all", "help"])
-            linter = Lint(args[1:])
-            ret = linter.process()
-            if ret is False:
-                print "Lint analysis failed!"
-        except getopt.GetoptError:
-            Lint.usage()
+        parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
+        parser.add_argument("-s", action='store_true', help="Converts to braces on the same line\n\t(default)")
+        parser.add_argument("-n", action='store_true', help="Converts to braces on a new line")
+        parser.add_argument("-d", action='store_true', help="Directory to operate on\n\t(defaults to current directory)")
+        parser.add_argument("-p", action='store_true', help="Analyze for compliance, don't actually write anything")
+        parser.add_argument("-u", action='store_true', help="Process only files that have changed since the last git push\n\t(default)")
+        parser.add_argument("--all", action='store_true', help="Process all files in the directory\n\t(overrides -u)")
+        parser.add_argument("--ignore", action="append", nargs=1, help="Ignore the indicated directory")
+        linter = Lint(parser.parse_args())
+        ret = linter.process()
+        if ret is False:
+            print "Lint analysis failed!"
 
     #Returns true if everything analyzed cleanly
     @staticmethod
@@ -76,18 +85,6 @@ class Lint:
         if ret is False:
             print "Lint analysis failed!"
         return ret
-
-    @staticmethod
-    def usage():
-        print "Usage: work.py lint (-s | -n) [-au] [-d DIR]"
-        print "-h     Display this usage message"
-        print "--help Display this usage message"
-        print "-p     Analyze for compliance, don't actually write anything"
-        print "-s     Converts to braces on the same line\n\t(default)"
-        print "-n     Converts to braces on a new line"
-        print "-d     Directory to operate on\n\t(defaults to current directory)"
-        print "--all  Process all files in the directory\n\t(overrides -u)"
-        print "-u     Process only files that have changed since the last git push\n\t(default)"
 
     #Returns true if everything analyzed cleanly or if everything was updated to analyze cleanly
     def process(self):
