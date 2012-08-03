@@ -38,15 +38,15 @@ class Lint:
         if "-d" in flags:
             rootDir = flags[flags.index("-d")+1]
         else:
-            match = re.search(r':\s+(.+?):\s+', commands.getoutput("$(git rev-parse --show-toplevel)"))
-            rootDir = match.group(1)
+            rootDir = commands.getoutput("git rev-parse --show-toplevel")
         print "Processing files in %s" % os.getcwd()
 
         if "--all" in flags:
-            for fileName in commands.getoutput("find %s" % rootDir).strip().split("\n"):
-                file = SourceFile(fileName, rootDir, self.pretend)
-                if file.ext:
-                    self.files.append(file)
+            for fileName in os.listdir(rootDir):
+                if fileName[0] != ".":
+                    file = SourceFile(fileName, rootDir, self.pretend)
+                    if file.ext:
+                        self.files.append(file)
         else:
             status = commands.getoutput("git status")
             match = re.search(r'branch\s+(.+?)\s*$', status, re.IGNORECASE | re.MULTILINE)
