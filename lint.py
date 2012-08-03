@@ -34,18 +34,18 @@ class Lint:
         if "d" in flags:
             rootDir = flags[flags.index("-d")+1]
         else:
-            match = re.search(r':\s+(.+?):\s+', commands.getoutput("$(git rev-parse --show-toplevel)"))
-            rootDir = match.group(1)
+            rootDir = commands.getoutput("git rev-parse --show-toplevel")
         print "Processing files in %s" % os.getcwd()
 
         if "all" in flags:
-            for fileName in commands.getoutput("find %s" % rootDir).strip().split("\n"):
-                cont = True
-                if "ignore" in flags:
-                    for ignore in flags.ignore:
-                        if fileName.replace(rootDir+"/", "", 1).startswith(ignore[0]):
-                            cont = False
-                            break
+            for fileName in os.listdir(rootDir):
+                if fileName[0] != ".":
+                    cont = True
+                    if "ignore" in flags:
+                        for ignore in flags.ignore:
+                            if fileName.replace(rootDir+"/", "", 1).startswith(ignore[0]):
+                                cont = False
+                                break
                 if not cont:
                     continue
                 file = SourceFile(fileName, rootDir, self.pretend)
